@@ -1,112 +1,40 @@
-# 5-shot
-standard_prompt = '''Use numbers and basic arithmetic operations (+ - * /) to obtain 24.
-Input: 4 4 6 8
-Answer: (4 + 8) * (6 - 4) = 24
-Input: 2 9 10 12
-Answer: 2 * 12 * (10 - 9) = 24
-Input: 4 9 10 13
-Answer: (13 - 9) * (10 - 4) = 24
-Input: 1 4 8 8
-Answer: (8 / 4 + 1) * 8 = 24
-Input: 5 5 5 9
-Answer: 5 + 5 + 5 + 9 = 24
+value_prompt = '''Evaluate if given numbers can obtain 24 (sure/likely/impossible)
+Attention:
+Only use the input numbers to obtain 24, using basic arithmetic operations (+ - * /).
+All numbers must be used exactly once.
+Use as little combinations as necessary. When you find a valid way to get 24, stop further exploration.
+For each attempted combination, provide natural language reasoning (explain your thought process step-by-step) before deciding whether to continue or conclude.
+Do not enumerate every possible combination; only show the attempts that lead you toward the solution.
+If you find a way to get 24, output the complete combination in one expression on the last second line using the exact format \(6 + 6 + 12 = 24\) where all numbers and operations are enclosed in ().
+On the last line, output the final evaluation result exactly in the format \boxed{{\text{{eval value}}}}. Do not output the boxed answer more than once. The braces must be curly brackets.
+If you can obtain 24, the eval value should be sure; if you can't, the eval value should be impossible, if you are not sure, the eval value should be likely. Do not use other eval value.
 Input: {input}
 '''
 
-# 5-shot
-cot_prompt = '''Use numbers and basic arithmetic operations (+ - * /) to obtain 24. Each step, you are only allowed to choose two of the remaining numbers to obtain a new number.
-Input: 4 4 6 8
-Steps:
-4 + 8 = 12 (left: 4 6 12)
-6 - 4 = 2 (left: 2 12)
-2 * 12 = 24 (left: 24)
-Answer: (6 - 4) * (4 + 8) = 24
-Input: 2 9 10 12
-Steps:
-12 * 2 = 24 (left: 9 10 24)
-10 - 9 = 1 (left: 1 24)
-24 * 1 = 24 (left: 24)
-Answer: (12 * 2) * (10 - 9) = 24
-Input: 4 9 10 13
-Steps:
-13 - 10 = 3 (left: 3 4 9)
-9 - 3 = 6 (left: 4 6)
-4 * 6 = 24 (left: 24)
-Answer: 4 * (9 - (13 - 10)) = 24
-Input: 1 4 8 8
-Steps:
-8 / 4 = 2 (left: 1 2 8)
-1 + 2 = 3 (left: 3 8)
-3 * 8 = 24 (left: 24)
-Answer: (1 + 8 / 4) * 8 = 24
-Input: 5 5 5 9
-Steps:
-5 + 5 = 10 (left: 5 9 10)
-10 + 5 = 15 (left: 9 15)
-15 + 9 = 24 (left: 24)
-Answer: ((5 + 5) + 5) + 9 = 24
+
+value_last_step_prompt = """Following input are consist of four numbers and some operations, four numbers stand the initial input of the question of using basic arithmetic operations (+ - * /) to obtain 24, and operations are mid attempts step to obtain 24,judge the expression could obtain 24(Sure/Wrong)
+Attention:
+Please compute both sides of the math expression in the giving expression. If they are all equal, mark this condition is 'Sure!'; otherwise, 'Wrong!'.
+Also check whether the numbers in expression were come from the result of the operations in input or not. If they are correct to combine to obtain 24, mark this condition is 'Sure!'; otherwise, 'Wrong!'.
+Two conditions are all satisfied, output 'Sure!'; otherwise, output 'Wrong!'.
 Input: {input}
-'''
+Expression: {expression}
+Judge:
+"""
 
-# 1-shot
-propose_prompt = '''Input: 2 8 8 14, use basic arithmetic operations (+ - * /).
-Possible next eight steps:
-2 + 8 = 10 (left: 8 10 14)
-8 / 2 = 4 (left: 4 8 14)
-14 + 2 = 16 (left: 8 8 16)
-2 * 8 = 16 (left: 8 14 16)
-8 - 2 = 6 (left: 6 8 14)
-14 - 8 = 6 (left: 2 6 8)
-14 /  2 = 7 (left: 7 8 8)
-2 / 14 = 0.14444 (left: 0.14444 8 8)
+
+combine_prompt = """The following input consists of four numbers and a series of operations.
+These four numbers are the initial input for the problem of obtaining 24 using basic arithmetic operations (+, -, *, /).
+The provided operations represent intermediate steps attempted in the process.
+Your task is to combine these operations into one complete expression that uses exactly the four numbers provided as input, and each number should be used only once.
+
+Attention:
+- The final expression must use exactly all four numbers from the input list.
+- No additional numbers or operations should be introduced, only use the four numbers in the exact input list.
+- Each number must be used exactly once.
+- Do not generate any additional intermediate steps—only output the single, complete expression.
+- The final answer must be formatted exactly as: \\boxed{{expression}}
+
 Input: {input}
-Possible next {k} steps:
-'''
-
-value_prompt = '''Evaluate if given numbers can reach 24 (sure/likely/impossible)
-10 14
-Hmm, 10 + 14 = 24. That's straightforward. Sure.
-
-11 12
-11 + 12 = 23. Close, but not quite 24. Maybe I can try something else, like (12 - 11) * 11 = 11. Still not 24. 
-Impossible.
-
-4 4 10
-4 + 4 + 10 = 18. Not enough. Maybe (10 - 4) * 4 = 24. Yes, that works! 
-Sure.
-
-5 7 8
-5 + 7 + 8 = 20. Hmm, not quite. Maybe (8 - 5) * 7 = 21. Still not 24. 
-Likely, but not sure.
-
-{input}
-'''
-
-value_last_step_prompt = '''Use numbers and basic arithmetic operations (+ - * /) to obtain 24. Given an input and an answer, give a judgement (sure/impossible) if the answer is correct, i.e. it uses each input exactly once and no other numbers, and reach 24.
-Input: 4 4 6 8
-Answer: (4 + 8) * (6 - 4) = 24
-Judge: 
-sure
-Input: 2 9 10 12
-Answer: 2 * 12 * (10 - 9) = 24
-Judge: 
-sure
-Input: 4 9 10 13
-Answer: (13 - 9) * (10 - 4) = 24
-Judge: 
-sure
-Input: 4 4 6 8
-Answer: (4 + 8) * (6 - 4) + 1 = 25
-Judge: 
-impossible
-Input: 2 9 10 12
-Answer: 2 * (12 - 10) = 24
-Judge: 
-impossible
-Input: 4 9 10 13
-Answer: (13 - 4) * (10 - 9) = 24
-Judge: 
-impossible
-Input: {input}
-Answer: {answer}
-Judge:'''
+Operations: {operations}
+Combine:"""

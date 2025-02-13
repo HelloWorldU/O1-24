@@ -13,8 +13,6 @@ class Task:
     def get_input(self, idx: int) -> str:
         pass
 
-    def test_output(self, idx: int, output: str):
-        pass
 
 def get_task(name):
     if name == 'game24':
